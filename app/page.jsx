@@ -46,7 +46,7 @@ export default function Home() {
     e.preventDefault();
 
     const date = new Date();
-
+    setLoading(true);
     try {
       // Отправляем новый пост на сервер
       const newPost = await createPost({ username, desc, date });
@@ -56,11 +56,15 @@ export default function Home() {
 
       // Очищаем поля формы
       setUsername("");
+
       setDesc("");
       setError("");
     } catch (err) {
+      setLoading(false);
       setError("Ошибка при создании поста");
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
