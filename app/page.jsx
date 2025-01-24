@@ -26,7 +26,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const myUserId = "user1-id"; // Ваш ID (можно получать из контекста или состояния)
+  const myUserId = "user1-id"; // Ваш ID
 
   const supabase = createClient();
 
@@ -78,18 +78,21 @@ export default function Home() {
 
     const date = new Date();
 
+    // Локальное сообщение
     const localPost = {
-      id: Date.now(),
+      id: Date.now(), // Временный ID (не используется как ключ)
+      localId: crypto.randomUUID(), // Уникальный ID для ключа
       username,
       desc,
       date,
-      authorId: myUserId, // Добавляем authorId
+      authorId: myUserId,
       isLocal: true,
     };
 
     setPosts((prevPosts) => [localPost, ...prevPosts]);
 
     try {
+      // Отправляем данные на сервер
       const newPost = await createPost({
         username,
         desc,
@@ -97,9 +100,10 @@ export default function Home() {
         authorId: myUserId,
       });
 
+      // Заменяем локальное сообщение на данные с сервера
       setPosts((prevPosts) => [
-        { ...newPost, isLocal: false }, // Сохраняем authorId из ответа сервера
-        ...prevPosts.filter((post) => post.id !== localPost.id),
+        { ...newPost, isLocal: false },
+        ...prevPosts.filter((post) => post.localId !== localPost.localId),
       ]);
 
       setDesc("");
@@ -107,7 +111,7 @@ export default function Home() {
     } catch (err) {
       // Откатываем изменения в случае ошибки
       setPosts((prevPosts) =>
-        prevPosts.filter((post) => post.id !== localPost.id)
+        prevPosts.filter((post) => post.localId !== localPost.localId)
       );
       setError("Ошибка при создании поста");
       console.error(err);
@@ -153,7 +157,9 @@ export default function Home() {
             <>
               {posts.map((post) => (
                 <div
-                  key={post.isLocal ? `local-${post.id}` : `server-${post.id}`}
+                  key={
+                    post.isLocal ? `local-${post.localId}` : `server-${post.id}`
+                  } // Уникальные ключи
                   className={`flex ${
                     post.authorId === myUserId ? "justify-end" : "justify-start"
                   }`}
