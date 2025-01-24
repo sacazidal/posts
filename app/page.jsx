@@ -24,6 +24,7 @@ export default function Home() {
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const supabase = createClient();
 
@@ -36,7 +37,6 @@ export default function Home() {
       } catch (error) {
         setError("Ошибка при загрузке постов");
         console.error(error);
-        setLoading(false);
       } finally {
         setLoading(false);
       }
@@ -56,7 +56,9 @@ export default function Home() {
           table: "posts",
         },
         (payload) => {
-          setPosts((prevPosts) => [payload.new, ...prevPosts]);
+          if (!posts.some((post) => post.id === payload.new.id)) {
+            setPosts((prevPosts) => [payload.new, ...prevPosts]);
+          }
         }
       )
       .subscribe();
@@ -64,61 +66,75 @@ export default function Home() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, posts]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     const date = new Date();
-    setLoading(true);
+
+    const localPost = {
+      id: Date.now(),
+      username,
+      desc,
+      date,
+      isLocal: true,
+    };
+
+    setPosts((prevPosts) => [localPost, ...prevPosts]);
+
     try {
-      // Отправляем новый пост на сервер
       const newPost = await createPost({ username, desc, date });
 
-      // Очищаем поля формы
-      setUsername("");
+      setPosts((prevPosts) => [
+        { ...newPost, isLocal: false },
+        ...prevPosts.filter((post) => post.id !== localPost.id),
+      ]);
 
+      setUsername("");
       setDesc("");
       setError("");
     } catch (err) {
-      setLoading(false);
+      setPosts((prevPosts) =>
+        prevPosts.filter((post) => post.id !== localPost.id)
+      );
       setError("Ошибка при создании поста");
       console.error(err);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <main className="h-full container mx-auto py-10 flex justify-center px-2">
       <form onSubmit={handleSubmit} className="flex flex-col max-w-md w-full">
-        <div className="flex flex-col gap-y-2">
-          <input
-            type="text"
-            placeholder="Имя пользователя"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="p-2 border border-gray-300 rounded"
-            required
-          />
+        <input
+          type="text"
+          placeholder="Имя пользователя"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="p-2 border border-gray-300 rounded"
+          required
+        />
 
-          {/* Поле для ввода описания */}
-          <textarea
-            placeholder="Описание"
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            className="p-2 border border-gray-300 rounded"
-            required
-          />
+        <textarea
+          placeholder="Описание"
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          className="p-2 border border-gray-300 rounded"
+          required
+        />
 
-          {/* Кнопка отправки */}
-          <button
-            type="submit"
-            className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Опубликовать
-          </button>
-        </div>
+        <button
+          type="submit"
+          className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Отправка..." : "Опубликовать"}
+        </button>
 
         {error && <p className="text-red-500">{error}</p>}
 
@@ -127,9 +143,9 @@ export default function Home() {
             <p className="text-center text-2xl">Загрузка...</p>
           ) : (
             <>
-              {posts.map((post, index) => (
+              {posts.map((post) => (
                 <div
-                  key={index}
+                  key={post.isLocal ? `local-${post.id}` : `server-${post.id}`}
                   className="p-4 border border-gray-200 rounded-lg"
                 >
                   <h2 className="text-2xl font-bold">{post.username}</h2>
@@ -137,6 +153,9 @@ export default function Home() {
                   <p className="text-gray-400">
                     Опубликовано: {new Date(post.date).toLocaleString()}
                   </p>
+                  {post.isLocal && (
+                    <p className="text-sm text-yellow-500">Отправка...</p>
+                  )}
                 </div>
               ))}
             </>
