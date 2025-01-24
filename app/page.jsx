@@ -75,9 +75,6 @@ export default function Home() {
       // Отправляем новый пост на сервер
       const newPost = await createPost({ username, desc, date });
 
-      // Обновляем состояние с постами, добавляя новый пост
-      setPosts((prevPosts) => [newPost, ...prevPosts]);
-
       // Очищаем поля формы
       setUsername("");
 
@@ -95,31 +92,33 @@ export default function Home() {
   return (
     <main className="h-full container mx-auto py-10 flex justify-center px-2">
       <form onSubmit={handleSubmit} className="flex flex-col max-w-md w-full">
-        <input
-          type="text"
-          placeholder="Имя пользователя"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-          required
-        />
+        <div className="flex flex-col gap-y-2">
+          <input
+            type="text"
+            placeholder="Имя пользователя"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="p-2 border border-gray-300 rounded"
+            required
+          />
 
-        {/* Поле для ввода описания */}
-        <textarea
-          placeholder="Описание"
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-          required
-        />
+          {/* Поле для ввода описания */}
+          <textarea
+            placeholder="Описание"
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            className="p-2 border border-gray-300 rounded"
+            required
+          />
 
-        {/* Кнопка отправки */}
-        <button
-          type="submit"
-          className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Опубликовать
-        </button>
+          {/* Кнопка отправки */}
+          <button
+            type="submit"
+            className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Опубликовать
+          </button>
+        </div>
 
         {error && <p className="text-red-500">{error}</p>}
 
