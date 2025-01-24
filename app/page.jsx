@@ -94,7 +94,6 @@ export default function Home() {
         ...prevPosts.filter((post) => post.id !== localPost.id),
       ]);
 
-      setUsername("");
       setDesc("");
       setError("");
     } catch (err) {
