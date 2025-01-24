@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@/app/utils/supabase/client";
 
 async function fetchPosts() {
   const res = await fetch("/api/posts");
@@ -24,6 +25,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const supabase = createClient();
+
   useEffect(() => {
     const loadPosts = async () => {
       try {
@@ -41,6 +44,27 @@ export default function Home() {
 
     loadPosts();
   }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("realtime posts")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "posts",
+        },
+        (payload) => {
+          setPosts((prevPosts) => [payload.new, ...prevPosts]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
