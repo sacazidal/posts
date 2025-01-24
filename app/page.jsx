@@ -9,11 +9,11 @@ async function fetchPosts() {
   return result;
 }
 
-async function createPost({ username, desc, date }) {
+async function createPost({ username, desc, date, authorId }) {
   const res = await fetch("/api/posts/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, desc, date }),
+    body: JSON.stringify({ username, desc, date, authorId }),
   });
   return await res.json();
 }
@@ -25,6 +25,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const myUserId = "user1-id"; // Ваш ID (можно получать из контекста или состояния)
 
   const supabase = createClient();
 
@@ -81,22 +83,29 @@ export default function Home() {
       username,
       desc,
       date,
+      authorId: myUserId, // Добавляем authorId
       isLocal: true,
     };
 
     setPosts((prevPosts) => [localPost, ...prevPosts]);
 
     try {
-      const newPost = await createPost({ username, desc, date });
+      const newPost = await createPost({
+        username,
+        desc,
+        date,
+        authorId: myUserId,
+      });
 
       setPosts((prevPosts) => [
-        { ...newPost, isLocal: false },
+        { ...newPost, isLocal: false }, // Сохраняем authorId из ответа сервера
         ...prevPosts.filter((post) => post.id !== localPost.id),
       ]);
 
       setDesc("");
       setError("");
     } catch (err) {
+      // Откатываем изменения в случае ошибки
       setPosts((prevPosts) =>
         prevPosts.filter((post) => post.id !== localPost.id)
       );
@@ -145,16 +154,26 @@ export default function Home() {
               {posts.map((post) => (
                 <div
                   key={post.isLocal ? `local-${post.id}` : `server-${post.id}`}
-                  className="p-4 border border-gray-200 rounded-lg"
+                  className={`flex ${
+                    post.authorId === myUserId ? "justify-end" : "justify-start"
+                  }`}
                 >
-                  <h2 className="text-2xl font-bold">{post.username}</h2>
-                  <p className="text-gray-600">{post.desc}</p>
-                  <p className="text-gray-400">
-                    Опубликовано: {new Date(post.date).toLocaleString()}
-                  </p>
-                  {post.isLocal && (
-                    <p className="text-sm text-yellow-500">Отправка...</p>
-                  )}
+                  <div
+                    className={`p-4 rounded-lg max-w-[70%] ${
+                      post.authorId === myUserId
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200 text-gray-800"
+                    }`}
+                  >
+                    <h2 className="text-2xl font-bold">{post.username}</h2>
+                    <p className="text-gray-600">{post.desc}</p>
+                    <p className="text-gray-400">
+                      Опубликовано: {new Date(post.date).toLocaleString()}
+                    </p>
+                    {post.isLocal && (
+                      <p className="text-sm text-yellow-500">Отправка...</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </>
